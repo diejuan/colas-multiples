@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineFlow | Gestión de fila</title>
+    <style>
+      :root {
+        --bg: #f3f6fb;
+        --white: #ffffff;
+        --navy: #10243a;
+        --navy-soft: #193954;
+        --blue: #246bfd;
+        --blue-soft: #eaf1ff;
+        --green: #138a72;
+        --green-soft: #e5f6f1;
+        --orange: #d97706;
+        --orange-soft: #fff3e0;
+        --text: #1b2b40;
+        --text-sec: #718096;
+        --border: #e0e7f0;
+        --red: #d64545;
+        --shadow: 0 12px 26px rgba(16, 36, 58, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        padding: 0;
+      }
+
+      .app {
+        width: min(1280px, 100%);
+        min-height: 100vh;
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .topbar {
+        background: var(--navy);
+        height: 96px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        box-shadow: inset 0 -1px 0 rgba(255,255,255,.06);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: white;
+        font-size: 25px;
+        font-weight: 700;
+      }
+
+      .brand-mark {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, #44b3ff, #246bfd);
+        box-shadow: 0 0 20px rgba(68, 179, 255, 0.8);
+      }
+
+      .brand-sub {
+        font-size: 12px;
+        color: rgba(255,255,255,.7);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .main {
+        padding: 18px 22px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        flex: 1;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(150px, 1fr));
+        gap: 12px;
+      }
+
+      .card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        border-radius: 14px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .card-bar {
+        width: 4px;
+        border-radius: 999px;
+        align-self: stretch;
+      }
+
+      .card-content {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .card-label {
+        color: var(--text-sec);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
+      }
+
+      .card-value {
+        font-size: 26px;
+        font-weight: 800;
+        margin-top: 6px;
+      }
+
+      .card-foot {
+        color: #9aa7b7;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+      }
+
+      .panel {
+        background: var(--white);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        border-radius: 16px;
+        padding: 16px 18px 14px;
+      }
+
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .row label {
+        font-weight: 700;
+        color: var(--text-sec);
+        font-size: 13px;
+        margin-right: 2px;
+      }
+
+      .input,
+      .button,
+      .quick-btn {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font: inherit;
+      }
+
+      .input {
+        background: var(--white);
+        color: var(--text);
+        padding: 10px 12px;
+        min-height: 42px;
+        outline: none;
+        transition: border-color .15s ease, box-shadow .15s ease;
+      }
+
+      .input:focus {
+        border-color: rgba(36, 107, 253, 0.8);
+        box-shadow: 0 0 0 3px rgba(36, 107, 253, 0.12);
+      }
+
+      .button,
+      .quick-btn {
+        min-height: 42px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font-weight: 700;
+        transition: transform .12s ease, filter .12s ease;
+      }
+
+      .button:hover,
+      .quick-btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .button.primary {
+        background: var(--blue);
+        color: white;
+        border-color: var(--blue);
+      }
+
+      .button.secondary {
+        background: #edf2f8;
+        color: var(--text);
+        border-color: #edf2f8;
+      }
+
+      .button.danger {
+        background: #fcebec;
+        color: var(--red);
+        border-color: #fcebec;
+      }
+
+      .queue-wrap {
+        border: 1px solid var(--border);
+        background: #f7f9fc;
+        border-radius: 14px;
+        min-height: 260px;
+        margin-top: 12px;
+        padding: 10px 12px 8px;
+      }
+
+      .queue-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 10px 10px;
+      }
+
+      .queue-title {
+        font-size: 15px;
+        font-weight: 800;
+      }
+
+      .queue-indicator {
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-size: 10px;
+        font-weight: 800;
+        padding: 6px 10px;
+        border-radius: 999px;
+        letter-spacing: 0.08em;
+      }
+
+      .queue-desc {
+        color: var(--text-sec);
+        font-size: 12px;
+        padding: 0 10px 10px;
+      }
+
+      .queue-cards {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        padding: 10px 4px 8px;
+        min-height: 180px;
+      }
+
+      .queue-cards::-webkit-scrollbar {
+        height: 8px;
+      }
+
+      .queue-cards::-webkit-scrollbar-thumb {
+        background: #d8e1ed;
+        border-radius: 999px;
+      }
+
+      .person-card {
+        position: relative;
+        flex: 0 0 110px;
+        min-height: 160px;
+        border: 2px solid transparent;
+        border-radius: 18px;
+        background: var(--white);
+        padding: 10px 8px 8px;
+        box-shadow: 0 8px 18px rgba(27, 43, 64, .08);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+      }
+
+      .person-card.highlight {
+        border-color: #f59e0b;
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.12), 0 8px 18px rgba(27, 43, 64, .08);
+      }
+
+      .person-card.next .chip {
+        display: inline-flex;
+      }
+
+      .chip {
+        display: none;
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--blue);
+        color: white;
+        font-size: 7px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 5px 8px;
+        border-radius: 999px;
+      }
+
+      .avatar {
+        position: relative;
+        width: 76px;
+        height: 124px;
+        margin-top: 6px;
+      }
+
+      .ground {
+        position: absolute;
+        bottom: 0;
+        left: 12px;
+        width: 52px;
+        height: 8px;
+        border-radius: 10px;
+        background: #e0e7f0;
+      }
+
+      .head {
+        position: absolute;
+        width: 26px;
+        height: 26px;
+        left: 25px;
+        top: 6px;
+        border-radius: 50%;
+        background: #ffdbac;
+        border: 2px solid rgba(38, 56, 75, 0.9);
+      }
+
+      .hair {
+        position: absolute;
+        left: 25px;
+        top: 4px;
+        width: 26px;
+        height: 12px;
+        border-radius: 14px 14px 0 0;
+        background: #5d4037;
+      }
+
+      .eye {
+        position: absolute;
+        width: 3px;
+        height: 3px;
+        background: #263238;
+        border-radius: 50%;
+        top: 17px;
+      }
+
+      .eye.left { left: 32px; }
+      .eye.right { left: 41px; }
+
+      .body {
+        position: absolute;
+        left: 18px;
+        top: 32px;
+        width: 40px;
+        height: 36px;
+        border-radius: 8px;
+        background: var(--persona-color);
+        border: 2px solid rgba(38, 56, 75, 0.9);
+      }
+
+      .arm.left, .arm.right, .leg.left, .leg.right {
+        position: absolute;
+        background: #ffdbac;
+        border-radius: 999px;
+      }
+
+      .arm.left { left: 12px; top: 38px; width: 12px; height: 6px; transform: rotate(26deg); }
+      .arm.right { right: 12px; top: 38px; width: 12px; height: 6px; transform: rotate(-26deg); }
+      .leg.left { left: 24px; top: 67px; width: 6px; height: 22px; background: #263238; }
+      .leg.right { right: 24px; top: 67px; width: 6px; height: 22px; background: #263238; }
+
+      .name {
+        margin-top: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-align: center;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 90%;
+      }
+
+      .ticket {
+        margin-top: 4px;
+        font-size: 11px;
+        color: var(--text-sec);
+        font-weight: 800;
+      }
+
+      .empty-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        color: var(--text);
+      }
+
+      .empty-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .bottom {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .small-panel {
+        background: var(--white);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        border-radius: 14px;
+        padding: 12px 14px;
+      }
+
+      .small-panel h4 {
+        margin: 0 0 12px;
+        font-size: 12px;
+        color: var(--text);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .search-row {
+        display: flex;
+        gap: 8px;
+      }
+
+      .search-row input {
+        flex: 1;
+      }
+
+      .info {
+        color: var(--text-sec);
+        line-height: 1.6;
+        font-size: 13px;
+      }
+
+      .statusbar {
+        background: #e7edf5;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 18px;
+        color: #526579;
+        font-size: 12px;
+        border-top: 1px solid #dfe8f3;
+      }
+
+      .status-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .status-dot {
+        width: 9px;
+        height: 9px;
+        display: inline-block;
+        border-radius: 50%;
+        background: #30c27a;
+        box-shadow: 0 0 0 2px rgba(48, 194, 122, 0.14);
+      }
+
+      .status-right {
+        color: #8795a8;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-size: 8px;
+      }
+
+      @media (max-width: 820px) {
+        .stats {
+          grid-template-columns: repeat(2, minmax(120px, 1fr));
+        }
+
+        .bottom {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar {
+          height: auto;
+          min-height: 96px;
+          flex-direction: column;
+          justify-content: center;
+          gap: 8px;
+          padding-top: 10px;
+          padding-bottom: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <span>CineFlow</span>
+        </div>
+        <div class="brand-sub">Gestión de fila</div>
+      </header>
+
+      <main class="main">
+        <section class="stats">
+          <div class="card">
+            <div class="card-bar" style="background: var(--blue);"></div>
+            <div class="card-content">
+              <span class="card-label">En cola</span>
+              <span class="card-value" id="enCola">0</span>
+              <span class="card-foot">Personas</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-bar" style="background: var(--green);"></div>
+            <div class="card-content">
+              <span class="card-label">Capacidad</span>
+              <span class="card-value" id="capacidad">0</span>
+              <span class="card-foot">Máxima</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-bar" style="background: var(--orange);"></div>
+            <div class="card-content">
+              <span class="card-label">Llegadas</span>
+              <span class="card-value" id="llegadas">0</span>
+              <span class="card-foot">Total</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-bar" style="background: var(--navy);"></div>
+            <div class="card-content">
+              <span class="card-label">Atendidos</span>
+              <span class="card-value" id="atendidos">0</span>
+              <span class="card-foot">Hoy</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-bar" style="background: var(--red);"></div>
+            <div class="card-content">
+              <span class="card-label">Uso</span>
+              <span class="card-value" id="uso">0 %</span>
+              <span class="card-foot">Ocupación</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="controls">
+            <div class="row">
+              <label for="nombreInput">Nombre de la persona</label>
+              <input id="nombreInput" class="input" type="text" placeholder="Ej. Ana" />
+              <button class="button primary" id="agregarBtn">＋ Agregar persona</button>
+              <button class="button secondary" id="aleatorioBtn">🎲 Aleatorio</button>
+              <button class="button secondary" id="agregar5Btn">👥 Agregar 5</button>
+              <button class="button primary" id="atenderBtn" style="margin-left: auto;">🎟 Atender siguiente</button>
+            </div>
+
+            <div class="row" style="margin-top: 2px;">
+              <button class="button secondary" id="saltarBtn">⏭ Saltar turno</button>
+              <button class="button secondary" id="moverBtn">🔄 Simular movimiento</button>
+              <button class="button danger" id="vaciarBtn">🗑 Vaciar cola</button>
+              <button class="button secondary" id="exportarBtn">📄 Exportar CSV</button>
+              <button class="button secondary" id="simularBtn" style="margin-left: auto;">▶ Iniciar simulación</button>
+              <button class="button danger" id="detenerBtn">⏸ Detener</button>
+            </div>
+          </div>
+
+          <div class="queue-wrap">
+            <div class="queue-top">
+              <div class="queue-title">Vista de la fila</div>
+              <div class="queue-indicator">FRENTE → FINAL</div>
+            </div>
+            <div class="queue-desc">Cada tarjeta representa a una persona. El frente es el próximo turno que será atendido.</div>
+            <div class="queue-cards" id="queueCards"></div>
+          </div>
+
+          <div class="bottom">
+            <section class="small-panel">
+              <h4>Buscar persona o ticket</h4>
+              <div class="search-row">
+                <input id="searchInput" class="input" type="text" placeholder="Escribe nombre o ticket" />
+                <button class="button primary" id="buscarBtn">Buscar</button>
+              </div>
+            </section>
+
+            <section class="small-panel">
+              <h4>Información del sistema</h4>
+              <div class="info">
+                FIFO • Primero en entrar, primero en salir<br />
+                Si la capacidad se completa, el arreglo duplica su tamaño y mantiene el orden.
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+
+      <div class="statusbar">
+        <div class="status-left">
+          <span class="status-dot"></span>
+          <span id="statusText">Sistema listo</span>
+        </div>
+        <div class="status-right">CineFlow • Laboratorio de Estructuras de Datos</div>
+      </div>
+    </div>
+
+    <script>
+      class ColaCircularDinamica {
+        constructor(capacidadInicial = 5) {
+          this.capacidad = Math.max(1, capacidadInicial);
+          this.datos = Array(this.capacidad).fill(null);
+          this.frente = 0;
+          this.tamano = 0;
+        }
+
+        get length() {
+          return this.tamano;
+        }
+
+        estaVacia() {
+          return this.tamano === 0;
+        }
+
+        estaLlena() {
+          return this.tamano === this.capacidad;
+        }
+
+        _redimensionar(nuevaCapacidad = null) {
+          if (nuevaCapacidad === null) {
+            nuevaCapacidad = this.capacidad * 2;
+          }
+          nuevaCapacidad = Math.max(nuevaCapacidad, this.tamano + 1);
+          const nuevoArreglo = Array(nuevaCapacidad).fill(null);
+
+          for (let i = 0; i < this.tamano; i += 1) {
+            const indiceViejo = (this.frente + i) % this.capacidad;
+            nuevoArreglo[i] = this.datos[indiceViejo];
+          }
+
+          this.datos = nuevoArreglo;
+          this.capacidad = nuevaCapacidad;
+          this.frente = 0;
+        }
+
+        encolar(elemento) {
+          if (this.estaLlena()) {
+            this._redimensionar();
+          }
+          const indiceFinal = (this.frente + this.tamano) % this.capacidad;
+          this.datos[indiceFinal] = elemento;
+          this.tamano += 1;
+        }
+
+        desencolar() {
+          if (this.estaVacia()) {
+            return null;
+          }
+          const elemento = this.datos[this.frente];
+          this.datos[this.frente] = null;
+          this.frente = (this.frente + 1) % this.capacidad;
+          this.tamano -= 1;
+          if (this.tamano === 0) {
+            this.frente = 0;
+          }
+          return elemento;
+        }
+
+        primero() {
+          return this.estaVacia() ? null : this.datos[this.frente];
+        }
+
+        obtenerTodos() {
+          return Array.from({ length: this.tamano }, (_, i) => this.datos[(this.frente + i) % this.capacidad]);
+        }
+
+        buscar(texto) {
+          const query = texto.trim().toLowerCase();
+          if (!query) {
+            return [];
+          }
+          return this.obtenerTodos().filter((persona) => {
+            if (!persona) return false;
+            return persona.nombre.toLowerCase().includes(query) || persona.ticket.toLowerCase().includes(query);
+          });
+        }
+
+        rotarFrente() {
+          if (this.tamano <= 1) {
+            return false;
+          }
+          const persona = this.desencolar();
+          this.encolar(persona);
+          return true;
+        }
+      }
+
+      const nombres = [
+        "Ana", "Luis", "María", "Carlos", "Sofía", "Diego", "Valeria",
+        "Mateo", "Lucía", "Andrés", "Camila", "Javier", "Daniela",
+        "Gabriel", "Paola", "Fernando", "Micaela", "Rodrigo", "Noelia",
+        "Ángel", "Isabel", "Bruno", "Renata", "Pablo", "Elena", "Tomás"
+      ];
+
+      const apellidos = [
+        "Mamani", "Quispe", "Flores", "Rojas", "Vargas", "Gómez",
+        "Choque", "Pérez", "López", "Cruz", "Rivera", "Fernández"
+      ];
+
+      const colores = [
+        "#3978D4", "#25A18E", "#E39A3B", "#8D6AD9", "#D85B78",
+        "#4196B5", "#6E9F45", "#C66B45", "#5C70C8", "#239B8E"
+      ];
+
+      const state = {
+        cola: new ColaCircularDinamica(5),
+        historial: [],
+        siguienteTicket: 1,
+        totalLlegadas: 0,
+        totalAtendidos: 0,
+        simulacionActiva: false,
+        timerId: null,
+        personaResaltada: null
+      };
+
+      const elementos = {
+        nombreInput: document.getElementById("nombreInput"),
+        enCola: document.getElementById("enCola"),
+        capacidad: document.getElementById("capacidad"),
+        llegadas: document.getElementById("llegadas"),
+        atendidos: document.getElementById("atendidos"),
+        uso: document.getElementById("uso"),
+        queueCards: document.getElementById("queueCards"),
+        statusText: document.getElementById("statusText"),
+        searchInput: document.getElementById("searchInput")
+      };
+
+      function setStatus(texto) {
+        elementos.statusText.textContent = texto;
+      }
+
+      function randomName() {
+        const nombre = nombres[Math.floor(Math.random() * nombres.length)];
+        const apellido = apellidos[Math.floor(Math.random() * apellidos.length)];
+        return `${nombre} ${apellido}`;
+      }
+
+      function crearPersona(nombre) {
+        const ticket = `C${String(state.siguienteTicket).padStart(4, "0")}`;
+        state.siguienteTicket += 1;
+
+        return {
+          ticket,
+          nombre: nombre.trim(),
+          llegada: new Date(),
+          color: colores[Math.floor(Math.random() * colores.length)]
+        };
+      }
+
+      function agregarPersona(nombre) {
+        const valor = nombre.trim();
+        if (!valor) {
+          alert("Escribe el nombre de la persona.");
+          elementos.nombreInput.focus();
+          return;
+        }
+
+        const persona = crearPersona(valor);
+        const capacidadAntes = state.cola.capacidad;
+        state.cola.encolar(persona);
+        state.totalLlegadas += 1;
+        elementos.nombreInput.value = "";
+
+        if (state.cola.capacidad > capacidadAntes) {
+          setStatus(`¡Cola ampliada! Capacidad: ${capacidadAntes} → ${state.cola.capacidad}.`);
+        } else {
+          setStatus(`${valor} ingresó a la cola con el ticket ${persona.ticket}.`);
+        }
+
+        actualizarVista();
+      }
+
+      function agregarAleatoria() {
+        const nombre = randomName();
+        agregarPersona(nombre);
+      }
+
+      function agregarVarias(cantidad) {
+        for (let i = 0; i < cantidad; i += 1) {
+          const nombre = randomName();
+          agregarPersona(nombre);
+        }
+      }
+
+      function atenderSiguiente() {
+        if (state.cola.estaVacia()) {
+          setStatus("La cola está vacía, no hay personas por atender.");
+          return;
+        }
+
+        const persona = state.cola.desencolar();
+        const llegada = new Date(persona.llegada);
+        const atencion = new Date();
+        const espera = Math.max(0, Math.round((atencion - llegada) / 1000));
+
+        state.historial.push({
+          ticket: persona.ticket,
+          nombre: persona.nombre,
+          llegada: llegada.toISOString().slice(0, 19).replace("T", " "),
+          atencion: atencion.toISOString().slice(0, 19).replace("T", " "),
+          espera_segundos: espera
+        });
+
+        state.totalAtendidos += 1;
+        state.personaResaltada = persona.ticket;
+        setStatus(`${persona.nombre} fue atendido con el ticket ${persona.ticket}.`);
+        actualizarVista();
+      }
+
+      function saltarTurno() {
+        if (state.cola.length <= 1) {
+          setStatus("Debe haber al menos dos personas para saltar el turno.");
+          return;
+        }
+
+        const persona = state.cola.primero();
+        state.cola.rotarFrente();
+        state.personaResaltada = persona.ticket;
+        setStatus(`${persona.nombre} pasó al final de la fila.`);
+        actualizarVista();
+      }
+
+      function moverCola() {
+        if (state.cola.length <= 1) {
+          setStatus("La cola debe tener al menos dos personas para simular movimiento.");
+          return;
+        }
+
+        const primera = state.cola.primero();
+        state.cola.rotarFrente();
+        state.personaResaltada = primera.ticket;
+        setStatus("Se simuló el movimiento de la fila con el FIFO activo.");
+        actualizarVista();
+      }
+
+      function vaciarCola() {
+        state.cola = new ColaCircularDinamica(5);
+        state.personaResaltada = null;
+        setStatus("La cola fue vaciada correctamente.");
+        actualizarVista();
+      }
+
+      function exportarCSV() {
+        if (!state.historial.length) {
+          setStatus("No hay historial para exportar.");
+          return;
+        }
+
+        const columnas = ["ticket", "nombre", "llegada", "atencion", "espera_segundos"];
+        const contenido = [columnas.join(",")]
+          .concat(
+            state.historial.map((registro) =>
+              columnas.map((columna) => {
+                const valor = String(registro[columna] ?? "").replace(/"/g, '""');
+                return `"${valor}"`;
+              }).join(",")
+            )
+          )
+          .join("\n");
+
+        const blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const enlace = document.createElement("a");
+        enlace.href = url;
+        enlace.download = "historial_cine.csv";
+        document.body.appendChild(enlace);
+        enlace.click();
+        document.body.removeChild(enlace);
+        URL.revokeObjectURL(url);
+        setStatus(`CSV exportado: ${state.historial.length} registros.`);
+      }
+
+      function buscarPersona() {
+        const texto = elementos.searchInput.value.trim();
+        if (!texto) {
+          setStatus("Escribe un nombre o ticket para buscar.");
+          return;
+        }
+
+        const resultados = state.cola.buscar(texto);
+        if (!resultados.length) {
+          setStatus("No se encontró ninguna persona con ese criterio.");
+          return;
+        }
+
+        state.personaResaltada = resultados[0].ticket;
+        setStatus(`Se encontró: ${resultados[0].nombre} (${resultados[0].ticket}).`);
+        actualizarVista();
+      }
+
+      function iniciarSimulacion() {
+        if (state.simulacionActiva) {
+          return;
+        }
+
+        state.simulacionActiva = true;
+        setStatus("Simulación en marcha.");
+        state.timerId = setInterval(() => {
+          if (Math.random() < 0.65) {
+            agregarPersona(randomName());
+          } else if (!state.cola.estaVacia()) {
+            atenderSiguiente();
+          } else {
+            agregarPersona(randomName());
+          }
+        }, 1400);
+      }
+
+      function detenerSimulacion() {
+        state.simulacionActiva = false;
+        if (state.timerId) {
+          clearInterval(state.timerId);
+          state.timerId = null;
+        }
+        setStatus("Simulación detenida.");
+      }
+
+      function actualizarVista() {
+        const personas = state.cola.obtenerTodos();
+        elementos.enCola.textContent = String(personas.length);
+        elementos.capacidad.textContent = String(state.cola.capacidad);
+        elementos.llegadas.textContent = String(state.totalLlegadas);
+        elementos.atendidos.textContent = String(state.totalAtendidos);
+
+        const porcentaje = state.cola.capacidad ? (personas.length / state.cola.capacidad) * 100 : 0;
+        elementos.uso.textContent = `${Math.round(porcentaje)} %`;
+        renderQueue(personas);
+      }
+
+      function renderQueue(personas) {
+        if (!personas.length) {
+          elementos.queueCards.innerHTML = `
+            <div class="empty-box" style="width: 100%;">
+              <div class="empty-icon">＋</div>
+              <div style="font-size: 16px; font-weight: 800;">La fila está vacía</div>
+              <div style="color: var(--text-sec); margin-top: 6px;">Agrega una persona para comenzar</div>
+            </div>
+          `;
+          return;
+        }
+
+        elementos.queueCards.innerHTML = personas
+          .map((persona, index) => {
+            const isHighlighted = persona.ticket === state.personaResaltada;
+            const nextClass = index === 0 ? "next" : "";
+            return `
+              <div class="person-card ${nextClass} ${isHighlighted ? "highlight" : ""}">
+                <span class="chip">PRÓXIMO</span>
+                <div class="avatar" style="--persona-color: ${persona.color};">
+                  <div class="ground"></div>
+                  <div class="hair"></div>
+                  <div class="head"></div>
+                  <span class="eye left"></span>
+                  <span class="eye right"></span>
+                  <div class="body"></div>
+                  <div class="arm left"></div>
+                  <div class="arm right"></div>
+                  <div class="leg left"></div>
+                  <div class="leg right"></div>
+                </div>
+                <div class="name">${index + 1}. ${persona.nombre.slice(0, 13)}</div>
+                <div class="ticket">${persona.ticket}</div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      document.getElementById("agregarBtn").addEventListener("click", () => {
+        agregarPersona(elementos.nombreInput.value);
+      });
+
+      document.getElementById("aleatorioBtn").addEventListener("click", agregarAleatoria);
+      document.getElementById("agregar5Btn").addEventListener("click", () => agregarVarias(5));
+      document.getElementById("atenderBtn").addEventListener("click", atenderSiguiente);
+      document.getElementById("saltarBtn").addEventListener("click", saltarTurno);
+      document.getElementById("moverBtn").addEventListener("click", moverCola);
+      document.getElementById("vaciarBtn").addEventListener("click", vaciarCola);
+      document.getElementById("exportarBtn").addEventListener("click", exportarCSV);
+      document.getElementById("buscarBtn").addEventListener("click", buscarPersona);
+      document.getElementById("simularBtn").addEventListener("click", iniciarSimulacion);
+      document.getElementById("detenerBtn").addEventListener("click", detenerSimulacion);
+
+      elementos.nombreInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          agregarPersona(elementos.nombreInput.value);
+        }
+      });
+
+      elementos.searchInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          buscarPersona();
+        }
+      });
+
+      actualizarVista();
+    </script>
+  </body>
+</html>
