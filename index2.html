@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101522">
+  <title>Cola Circular del Cine</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Segoe UI", sans-serif;
+      background: #101522;
+      color: #edf2ff;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --panel: #191f2e;
+      --muted: #9aa6bd;
+      --line: #2b3448;
+      --accent: #f2b84b;
+      --green: #54d6a0;
+      --red: #fb7185;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 50% -20%, #263556 0, transparent 56%),
+        #101522;
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+
+    .app {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 38px 0 48px;
+    }
+
+    header { margin-bottom: 26px; }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.2rem); letter-spacing: -.045em; }
+    .subtitle { margin: 10px 0 0; color: var(--muted); }
+
+    .panel {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--panel) 95%, transparent);
+      box-shadow: 0 16px 42px #0508114d;
+    }
+
+    .controls { display: grid; gap: 16px; }
+    .input-row, .search-row, .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    input {
+      min-width: 190px;
+      flex: 1;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      outline: none;
+      background: #111725;
+      color: #fff;
+    }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px #f2b84b24; }
+    button {
+      padding: 11px 15px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      color: #101522;
+      background: var(--accent);
+      font-weight: 750;
+      transition: transform .15s, filter .15s;
+    }
+    button:hover { filter: brightness(1.09); transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button.secondary { color: #e8edfa; border-color: var(--line); background: #252d3e; }
+    button.success { color: #06291c; background: var(--green); }
+    button.blue { color: #071d31; background: #69b8ff; }
+    button.purple { color: #fff; background: #9272eb; }
+    button.danger { color: #fff; background: #d94d67; }
+    button:disabled { cursor: not-allowed; opacity: .48; transform: none; }
+    .divider { height: 1px; background: var(--line); }
+
+    .section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 12px;
+      margin: 30px 0 14px;
+    }
+    h2 { margin: 0; font-size: 1.12rem; }
+    .section-note { color: var(--muted); font-size: .87rem; }
+
+    .queue-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .slot {
+      min-height: 142px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #171d2a;
+      transition: border-color .2s, background .2s;
+    }
+    .slot.occupied { border-color: #347b62; background: #172a29; }
+    .slot.next { border-color: #bd8f35; background: #30291c; }
+    .slot.found { outline: 2px solid #e879f9; outline-offset: 2px; }
+    .slot-top { display: flex; justify-content: space-between; color: var(--muted); font-size: .79rem; }
+    .slot-state { font-size: .69rem; font-weight: 800; letter-spacing: .06em; }
+    .slot.next .slot-state { color: var(--accent); }
+    .slot.occupied:not(.next) .slot-state { color: var(--green); }
+    .slot-name { margin-top: 25px; overflow-wrap: anywhere; font-size: 1.05rem; font-weight: 750; }
+    .slot.empty .slot-name { color: #59647a; font-size: .9rem; font-weight: 500; }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .metric { padding: 15px 17px; border: 1px solid var(--line); border-radius: 13px; background: #171d2a; }
+    .metric-label { display: block; color: var(--muted); font-size: .79rem; }
+    .metric-value { display: block; margin-top: 5px; font-size: 1.25rem; font-weight: 800; }
+    .progress-wrap { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+    .progress-track { flex: 1; height: 10px; overflow: hidden; border-radius: 99px; background: #2a3244; }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #54d6a0, #f2b84b); transition: width .25s; }
+    .progress-label { min-width: 132px; color: var(--muted); text-align: right; font-size: .85rem; }
+
+    .lower-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; }
+    .lower-grid .panel { min-width: 0; }
+    .panel-title { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 15px; }
+    .panel-title span { color: var(--muted); font-size: .82rem; }
+    .history-list { max-height: 260px; overflow: auto; padding: 0; margin: 0; list-style: none; }
+    .history-list li { display: flex; justify-content: space-between; gap: 12px; padding: 11px 2px; border-bottom: 1px solid var(--line); }
+    .history-list time { flex: none; color: var(--muted); font-size: .83rem; }
+    .empty-history { padding: 23px 0; color: var(--muted); text-align: center; }
+    .stats { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.6; }
+    #notice { min-height: 1.4em; margin: 14px 0 0; color: var(--accent); font-size: .9rem; }
+
+    @media (max-width: 760px) {
+      .queue-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .slot:last-child { grid-column: span 2; }
+      .lower-grid { grid-template-columns: 1fr; }
+      .status-grid { grid-template-columns: 1fr; }
+      .metric { display: flex; justify-content: space-between; align-items: center; }
+      .metric-value { margin: 0; }
+    }
+    @media (max-width: 440px) {
+      .app { width: min(100% - 20px, 1120px); padding-top: 25px; }
+      .panel { padding: 16px; }
+      .queue-grid { gap: 8px; }
+      .slot { min-height: 122px; padding: 11px; }
+      .input-row > input, .search-row > input { min-width: 100%; }
+      .button-row button { flex: 1 1 42%; }
+      .progress-wrap { align-items: stretch; flex-direction: column; }
+      .progress-label { text-align: left; }
+      .section-heading { align-items: start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <p class="eyebrow">Sistema de atención</p>
+      <h1>🎬 Cola Circular del Cine</h1>
+      <p class="subtitle">Registra, organiza y atiende a las personas en espera.</p>
+    </header>
+
+    <section class="panel controls" aria-label="Controles de la cola">
+      <form class="input-row" id="register-form">
+        <input id="name-input" type="text" maxlength="60" placeholder="Nombre de la persona" aria-label="Nombre de la persona">
+        <button class="success" type="submit">＋ Registrar</button>
+        <button class="blue" id="serve-button" type="button">🎟 Atender</button>
+        <button class="purple" id="skip-button" type="button">⏭ Saltar turno</button>
+      </form>
+      <div class="button-row">
+        <button id="random-button" type="button">🎲 Nombre aleatorio</button>
+        <button class="danger" id="fill-button" type="button">⚡ Llenar cola</button>
+        <button class="secondary" id="simulator-button" type="button">▶ Iniciar simulación</button>
+      </div>
+      <div class="divider"></div>
+      <form class="search-row" id="search-form">
+        <input id="search-input" type="search" placeholder="Buscar por nombre" aria-label="Buscar persona en la cola">
+        <button type="submit">⌕ Buscar</button>
+        <button class="secondary" id="clear-button" type="button">Vaciar cola</button>
+        <button class="danger" id="reset-button" type="button">Reiniciar todo</button>
+        <button class="secondary" id="export-button" type="button">⇩ Exportar historial</button>
+      </form>
+      <p id="notice" role="status" aria-live="polite"></p>
+    </section>
+
+    <section aria-labelledby="queue-title">
+      <div class="section-heading">
+        <h2 id="queue-title">Estado actual de la cola</h2>
+        <span class="section-note">La persona próxima a ser atendida aparece destacada.</span>
+      </div>
+      <div class="queue-grid" id="queue-grid"></div>
+      <div class="status-grid">
+        <div class="metric"><span class="metric-label">Índice de inicio</span><strong class="metric-value" id="start-value">0</strong></div>
+        <div class="metric"><span class="metric-label">Índice final (siguiente espacio)</span><strong class="metric-value" id="end-value">0</strong></div>
+        <div class="metric"><span class="metric-label">Personas esperando</span><strong class="metric-value" id="waiting-value">0 / 5</strong></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-track" role="progressbar" aria-label="Ocupación de la cola" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <span class="progress-label" id="occupancy-label">0% de ocupación</span>
+      </div>
+    </section>
+
+    <div class="lower-grid">
+      <section class="panel" aria-labelledby="history-title">
+        <div class="panel-title">
+          <h2 id="history-title">Personas atendidas</h2>
+          <span id="served-count">0 registros</span>
+        </div>
+        <ul class="history-list" id="history-list"><li class="empty-history">Aún no hay personas atendidas.</li></ul>
+      </section>
+      <section class="panel" aria-labelledby="stats-title">
+        <div class="panel-title"><h2 id="stats-title">Resumen</h2></div>
+        <p class="stats" id="stats-text">Atendidos totales: 0<br>En cola: 0/5<br>Última atención: —</p>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    const capacity = 5;
+    const names = [
+      "Juan", "María", "Pedro", "Ana", "Luis", "Sofía", "Carlos",
+      "Lucía", "Diego", "Valentina", "Andrés", "Camila", "Jorge",
+      "Paula", "Ricardo", "Elena", "Miguel", "Laura", "Felipe",
+      "Isabela", "Tomás", "Daniela", "Sebastián", "Gabriela"
+    ];
+    const queue = Array(capacity).fill(null);
+    const history = [];
+    let start = 0;
+    let end = 0;
+    let count = 0;
+    let simulatorTimer = null;
+    let noticeTimer = null;
+    let highlightedSlots = [];
+
+    const $ = (selector) => document.querySelector(selector);
+    const queueGrid = $("#queue-grid");
+    const nameInput = $("#name-input");
+    const searchInput = $("#search-input");
+
+    function showNotice(message) {
+      $("#notice").textContent = message;
+      window.clearTimeout(noticeTimer);
+      noticeTimer = window.setTimeout(() => { $("#notice").textContent = ""; }, 4500);
+    }
+
+    function playBeep() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        const context = new AudioContextClass();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.frequency.value = 660;
+        gain.gain.setValueAtTime(0.08, context.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.12);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.12);
+        oscillator.addEventListener("ended", () => { void context.close(); }, { once: true });
+      } catch (error) {
+        console.warn("No se pudo reproducir la notificación de sonido.", error);
+      }
+    }
+
+    function render() {
+      queueGrid.replaceChildren();
+      queue.forEach((person, index) => {
+        const isNext = count > 0 && index === start;
+        const slot = document.createElement("article");
+        slot.className = `slot ${person ? "occupied" : "empty"}${isNext ? " next" : ""}${highlightedSlots.includes(index) ? " found" : ""}`;
+        const top = document.createElement("div");
+        top.className = "slot-top";
+        const position = document.createElement("span");
+        position.textContent = `POSICIÓN ${index}`;
+        const state = document.createElement("span");
+        state.className = "slot-state";
+        state.textContent = isNext ? "★ PRÓXIMO" : person ? "OCUPADO" : "VACÍO";
+        top.append(position, state);
+        const personName = document.createElement("div");
+        personName.className = "slot-name";
+        personName.textContent = person || "Espacio disponible";
+        slot.append(top, personName);
+        queueGrid.append(slot);
+      });
+
+      $("#start-value").textContent = String(start);
+      $("#end-value").textContent = String(end);
+      $("#waiting-value").textContent = `${count} / ${capacity}`;
+      const percent = Math.round((count / capacity) * 100);
+      $("#progress-fill").style.width = `${percent}%`;
+      $(".progress-track").setAttribute("aria-valuenow", String(count));
+      $("#occupancy-label").textContent = `${percent}% de ocupación`;
+
+      const historyList = $("#history-list");
+      historyList.replaceChildren();
+      if (history.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "empty-history";
+        empty.textContent = "Aún no hay personas atendidas.";
+        historyList.append(empty);
+      } else {
+        history.forEach((record, index) => {
+          const item = document.createElement("li");
+          const person = document.createElement("span");
+          person.textContent = `${index + 1}. ${record.name}`;
+          const time = document.createElement("time");
+          time.dateTime = record.date.toISOString();
+          time.textContent = record.date.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+          item.append(person, time);
+          historyList.append(item);
+        });
+      }
+      $("#served-count").textContent = `${history.length} ${history.length === 1 ? "registro" : "registros"}`;
+      const lastTime = history.length
+        ? history[history.length - 1].date.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+        : "—";
+      $("#stats-text").innerHTML = `Atendidos totales: ${history.length}<br>En cola: ${count}/${capacity}<br>Última atención: ${lastTime}`;
+
+      $("#serve-button").disabled = count === 0;
+      $("#skip-button").disabled = count <= 1;
+      $("#fill-button").disabled = count === capacity;
+    }
+
+    function registerPerson(name) {
+      const fromInput = name === undefined;
+      const cleanName = (fromInput ? nameInput.value : name).trim();
+      if (!cleanName) {
+        showNotice("Escribe el nombre de la persona.");
+        if (fromInput) nameInput.focus();
+        return false;
+      }
+      if (count === capacity) {
+        showNotice("La cola está llena.");
+        return false;
+      }
+      queue[end] = cleanName;
+      end = (end + 1) % capacity;
+      count += 1;
+      if (fromInput) nameInput.value = "";
+      highlightedSlots = [];
+      render();
+      playBeep();
+      showNotice(`${cleanName} se agregó a la cola.`);
+      return true;
+    }
+
+    function servePerson(silent = false) {
+      if (count === 0) {
+        if (!silent) showNotice("No hay personas esperando.");
+        return null;
+      }
+      const person = queue[start];
+      queue[start] = null;
+      start = (start + 1) % capacity;
+      count -= 1;
+      history.push({ name: person, date: new Date() });
+      highlightedSlots = [];
+      render();
+      playBeep();
+      if (!silent) showNotice(`Se atendió a ${person}.`);
+      return person;
+    }
+
+    function skipTurn() {
+      if (count <= 1) {
+        showNotice("Se necesitan al menos dos personas para saltar turno.");
+        return;
+      }
+      const person = queue[start];
+      queue[start] = null;
+      start = (start + 1) % capacity;
+      count -= 1;
+      queue[end] = person;
+      end = (end + 1) % capacity;
+      count += 1;
+      highlightedSlots = [];
+      render();
+      showNotice(`${person} pasó al final de la cola.`);
+    }
+
+    function randomName() {
+      return names[Math.floor(Math.random() * names.length)];
+    }
+
+    function clearQueue() {
+      if (count === 0) {
+        showNotice("La cola ya está vacía.");
+        return;
+      }
+      if (!window.confirm("¿Seguro que deseas vaciar toda la cola?")) return;
+      queue.fill(null);
+      start = 0;
+      end = 0;
+      count = 0;
+      highlightedSlots = [];
+      render();
+      showNotice("La cola quedó vacía. El historial se conservó.");
+    }
+
+    function stopSimulator() {
+      if (simulatorTimer !== null) {
+        window.clearInterval(simulatorTimer);
+        simulatorTimer = null;
+      }
+      $("#simulator-button").textContent = "▶ Iniciar simulación";
+      $("#simulator-button").classList.remove("danger");
+      $("#simulator-button").classList.add("secondary");
+    }
+
+    function resetAll() {
+      if (!window.confirm("¿Borrar todos los datos de la cola y del historial?")) return;
+      stopSimulator();
+      queue.fill(null);
+      start = 0;
+      end = 0;
+      count = 0;
+      history.length = 0;
+      highlightedSlots = [];
+      render();
+      showNotice("Se reiniciaron la cola y el historial.");
+    }
+
+    function exportHistory() {
+      if (history.length === 0) {
+        showNotice("No hay personas atendidas para exportar.");
+        return;
+      }
+      const now = new Date();
+      const dateString = now.toLocaleString("es");
+      const lines = [
+        "=== PERSONAS ATENDIDAS - CINE ===",
+        `Fecha: ${dateString}`,
+        "",
+        ...history.map((record, index) => {
+          const time = record.date.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+          return `${index + 1}. ${record.name} (atendido a las ${time})`;
+        })
+      ];
+      const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const stamp = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0"),
+        "_",
+        String(now.getHours()).padStart(2, "0"),
+        String(now.getMinutes()).padStart(2, "0"),
+        String(now.getSeconds()).padStart(2, "0")
+      ].join("");
+      link.href = url;
+      link.download = `atendidos_${stamp}.txt`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showNotice("Se descargó el historial de personas atendidas.");
+    }
+
+    $("#register-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      registerPerson();
+    });
+    $("#serve-button").addEventListener("click", () => { servePerson(); });
+    $("#skip-button").addEventListener("click", skipTurn);
+    $("#random-button").addEventListener("click", () => { registerPerson(randomName()); });
+    $("#fill-button").addEventListener("click", () => {
+      while (count < capacity) registerPerson(randomName());
+      showNotice("La cola se llenó con nombres aleatorios.");
+    });
+    $("#simulator-button").addEventListener("click", () => {
+      if (simulatorTimer !== null) {
+        stopSimulator();
+        showNotice("Simulación detenida.");
+        return;
+      }
+      $("#simulator-button").textContent = "⏸ Detener simulación";
+      $("#simulator-button").classList.remove("secondary");
+      $("#simulator-button").classList.add("danger");
+      simulatorTimer = window.setInterval(() => {
+        if (count < capacity && Math.random() < 0.7) registerPerson(randomName());
+        if (count > 0 && Math.random() < 0.6) servePerson(true);
+      }, 1200);
+      showNotice("Simulación iniciada.");
+    });
+    $("#search-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const query = searchInput.value.trim();
+      if (!query) {
+        showNotice("Escribe un nombre para buscar.");
+        searchInput.focus();
+        return;
+      }
+      highlightedSlots = queue.reduce((matches, person, index) => {
+        if (person && person.toLocaleLowerCase() === query.toLocaleLowerCase()) matches.push(index);
+        return matches;
+      }, []);
+      render();
+      showNotice(highlightedSlots.length
+        ? `${query} está en la(s) posición(es): ${highlightedSlots.join(", ")}.`
+        : `${query} no está en la cola.`);
+    });
+    $("#clear-button").addEventListener("click", clearQueue);
+    $("#reset-button").addEventListener("click", resetAll);
+    $("#export-button").addEventListener("click", exportHistory);
+    window.addEventListener("beforeunload", stopSimulator);
+
+    render();
+  </script>
+</body>
+</html>
